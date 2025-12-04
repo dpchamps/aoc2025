@@ -1,6 +1,6 @@
-use std::{env, fs};
-use anyhow::{Result};
+use anyhow::Result;
 use clap::{Parser, ValueEnum};
+use std::{env, fs};
 
 pub fn get_data(day: &str) -> Result<String> {
     let path = format!(
@@ -19,25 +19,25 @@ pub fn get_lines(day: &str) -> Result<Vec<String>> {
 #[derive(Debug, PartialEq, ValueEnum, Clone)]
 enum Problem {
     One,
-    Two
+    Two,
 }
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
     #[arg(short, long, value_enum, default_value_t = Problem::One)]
-    problem: Problem
+    problem: Problem,
 }
 
 pub fn run_problems(
     problem_one: fn(Vec<String>) -> Result<()>,
     problem_two: fn(Vec<String>) -> Result<()>,
-    input: Vec<String>
+    input: Vec<String>,
 ) -> Result<()> {
     let args = Args::parse();
-    
-    match args.problem { 
+
+    match args.problem {
         Problem::One => problem_one(input),
-        Problem::Two => problem_two(input)
+        Problem::Two => problem_two(input),
     }
 }
