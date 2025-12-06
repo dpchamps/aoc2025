@@ -46,7 +46,7 @@ impl Safe {
     pub fn rotate(&mut self, direction: &Direction) {
         let result = match direction {
             Direction::Left(count) => self.dial_state as isize - *count as isize,
-            Direction::Right(count) => (self.dial_state as isize + *count as isize),
+            Direction::Right(count) => self.dial_state as isize + *count as isize,
         };
 
         let (wrapped_result, crosses) = self.wrap(result);

@@ -29,10 +29,10 @@ struct Args {
     problem: Problem,
 }
 
-pub fn run_problems(
-    problem_one: fn(Vec<String>) -> Result<()>,
-    problem_two: fn(Vec<String>) -> Result<()>,
-    input: Vec<String>,
+pub fn run_problems<T>(
+    problem_one: fn(T) -> Result<()>,
+    problem_two: fn(T) -> Result<()>,
+    input: T,
 ) -> Result<()> {
     let args = Args::parse();
 
