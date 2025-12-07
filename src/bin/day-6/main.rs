@@ -25,17 +25,112 @@ impl From<&str> for Matrix {
 }
 
 #[derive(Debug)]
-struct Grid(Vec<Vec<String>>);
+struct Grid(Vec<Vec<char>>);
 
 impl From<&str> for Grid {
     fn from(value: &str) -> Self {
-        let re = Regex::new(r" {2,}\S+|\S+").unwrap();
-        let inner = value
-            .lines()
-            .map(|line| line.chars().map(String::from).collect::<Vec<String>>())
-            .collect::<Vec<Vec<String>>>();
+        let lines: Vec<&str> = value.lines().collect();
+        let max_width = lines.iter().map(|l| l.len()).max().unwrap_or(0);
+
+        let inner = lines
+            .iter()
+            .map(|line| {
+                let mut chars: Vec<char> = line.chars().collect();
+                while chars.len() < max_width {
+                    chars.push(' ');
+                }
+                chars
+            })
+            .collect();
 
         Grid(inner)
+    }
+}
+
+impl Grid {
+    fn parse_cephalopod_problems(&self) -> Vec<(Operator, Vec<usize>)> {
+        let rows = self.0.len();
+        let cols = if rows > 0 { self.0[0].len() } else { 0 };
+
+        if rows == 0 || cols == 0 {
+            return vec![];
+        }
+
+        let operator_row = rows - 1;
+        let data_rows = operator_row;
+
+        let mut problems: Vec<(Operator, Vec<usize>)> = vec![];
+        let mut current_columns: Vec<usize> = vec![];
+        let mut current_operator: Option<Operator> = None;
+
+        for col in 0..cols {
+            let is_separator = (0..data_rows).all(|row| self.0[row][col] == ' ');
+            let op_char = self.0[operator_row][col];
+
+            if is_separator && op_char == ' ' {
+                if !current_columns.is_empty() {
+                    if let Some(op) = current_operator.take() {
+                        let numbers: Vec<usize> = current_columns
+                            .iter()
+                            .rev()
+                            .map(|&c| {
+                                let digits: String = (0..data_rows)
+                                    .map(|r| self.0[r][c])
+                                    .filter(|&ch| ch.is_ascii_digit())
+                                    .collect();
+                                digits.parse::<usize>().unwrap_or(0)
+                            })
+                            .filter(|&n| n > 0)
+                            .collect();
+
+                        if !numbers.is_empty() {
+                            problems.push((op, numbers));
+                        }
+                    }
+                    current_columns.clear();
+                }
+            } else {
+                current_columns.push(col);
+                if op_char == '*' {
+                    current_operator = Some(Operator::MULT);
+                } else if op_char == '+' {
+                    current_operator = Some(Operator::PLUS);
+                }
+            }
+        }
+
+        if !current_columns.is_empty() {
+            if let Some(op) = current_operator.take() {
+                let numbers: Vec<usize> = current_columns
+                    .iter()
+                    .rev()
+                    .map(|&c| {
+                        let digits: String = (0..data_rows)
+                            .map(|r| self.0[r][c])
+                            .filter(|&ch| ch.is_ascii_digit())
+                            .collect();
+                        digits.parse::<usize>().unwrap_or(0)
+                    })
+                    .filter(|&n| n > 0)
+                    .collect();
+
+                if !numbers.is_empty() {
+                    problems.push((op, numbers));
+                }
+            }
+        }
+
+        problems
+    }
+
+    fn cephalopod_total(&self) -> usize {
+        self.parse_cephalopod_problems()
+            .iter()
+            .map(|(op, numbers)| match op {
+                Operator::MULT => numbers.iter().product::<usize>(),
+                Operator::PLUS => numbers.iter().sum::<usize>(),
+            })
+            .sum()
     }
 }
 
@@ -111,12 +206,6 @@ impl MathBook {
     pub fn total(&self) -> usize {
         self.operations.iter().map(Operation::apply).sum()
     }
-
-    pub fn cephalopod_columns(&mut self) {
-        for operation in self.operations.iter_mut() {
-            operation.cephalopod();
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -147,34 +236,9 @@ impl Operation {
                 .expect(&format!("failed to parse number {x}"))
         });
         match self.operator {
-            Operator::MULT => numbers.fold(1, |acc, el| acc * el),
+            Operator::MULT => numbers.product(),
             Operator::PLUS => numbers.sum(),
         }
-    }
-
-    pub fn cephalopod(&mut self) {
-        self.elements.reverse();
-        // let max_len = self
-        //     .elements
-        //     .iter()
-        //     .map(|x| x.to_string().len())
-        //     .max()
-        //     .expect("");
-        let exploded_elements = self
-            .elements
-            .iter()
-            .map(|x| {
-                x.chars()
-                    // .filter(|s| !s.is_empty())
-                    .map(String::from)
-                    .collect::<Vec<String>>()
-            })
-            .collect::<Vec<Vec<String>>>();
-        let mut matrix = Matrix::new(exploded_elements);
-        println!("{:?}", matrix);
-
-        matrix.rotate_counter_clockwise();
-        println!("{}", matrix);
     }
 }
 
@@ -207,12 +271,8 @@ fn problem_one(input: String) -> Result<()> {
 }
 
 fn problem_two(input: String) -> Result<()> {
-    let mut matrix = Matrix::from(input.as_str());
-    matrix.rotate_clockwise();
-    println!("{matrix}");
-    let mut mathbook = MathBook::try_from(matrix).map_err(|_| anyhow!(""))?;
-    mathbook.cephalopod_columns();
-    println!("{:?}", mathbook);
+    let grid = Grid::from(input.as_str());
+    println!("{}", grid.cephalopod_total());
     Ok(())
 }
 
@@ -248,14 +308,8 @@ mod day_6_tests {
 
     #[test]
     fn test_problem_two() -> anyhow::Result<()> {
-        let matrix = Grid::from(INPUT);
-        println!("{:?}", matrix);
-        // let mut mathbook = MathBook::try_from(matrix).map_err(|_| anyhow!(""))?;
-        // mathbook.cephalopod_columns();
-        // println!("{:?}", mathbook);
-
-        panic!();
-        // assert_eq!(mathbook.total(), 4277556);
+        let grid = Grid::from(INPUT);
+        assert_eq!(grid.cephalopod_total(), 3263827);
         Ok(())
     }
 }
