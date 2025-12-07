@@ -1,9 +1,9 @@
 use anyhow::{Result, anyhow};
 use aoc_2025::core::*;
 use itertools::Itertools;
-use std::fmt::{Display, Formatter, write};
-use std::usize;
 use regex::Regex;
+use std::fmt::{Display, Formatter};
+use std::usize;
 
 #[derive(Debug)]
 struct Matrix(Vec<Vec<String>>);
@@ -13,7 +13,11 @@ impl From<&str> for Matrix {
         let re = Regex::new(r" {2,}\S+|\S+").unwrap();
         let inner = value
             .lines()
-            .map(|line| re.find_iter(line).map(|x| x.as_str().to_string()).collect::<Vec<String>>())
+            .map(|line| {
+                re.find_iter(line)
+                    .map(|x| x.as_str().to_string())
+                    .collect::<Vec<String>>()
+            })
             .collect::<Vec<Vec<String>>>();
 
         Matrix(inner)
@@ -37,10 +41,14 @@ impl From<&str> for Grid {
 
 impl Display for Matrix {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let m = self.0.iter().map(|row| {
-            let r = row.iter().join(" ");
-            String::from(r.trim())
-        }).join("\n");
+        let m = self
+            .0
+            .iter()
+            .map(|row| {
+                let r = row.iter().join(" ");
+                String::from(r.trim())
+            })
+            .join("\n");
 
         write!(f, "--\n{}\n--", m)
     }
@@ -50,8 +58,8 @@ impl Matrix {
     pub fn new(inner: Vec<Vec<String>>) -> Self {
         Self(inner)
     }
-    
-    fn transpose(&mut self){
+
+    fn transpose(&mut self) {
         let n_rows = self.0.len();
         let n_cols = self.0[0].len();
 
@@ -126,17 +134,18 @@ impl TryFrom<&Vec<String>> for Operation {
 
         Ok(Self {
             operator: Operator::try_from(x)?,
-            elements: ys
-                .iter()
-                .map(String::from)
-                .collect(),
+            elements: ys.iter().map(String::from).collect(),
         })
     }
 }
 
 impl Operation {
     pub fn apply(&self) -> usize {
-        let numbers = self.elements.iter().map(|x| x.trim().parse::<usize>().expect(&format!("failed to parse number {x}")));
+        let numbers = self.elements.iter().map(|x| {
+            x.trim()
+                .parse::<usize>()
+                .expect(&format!("failed to parse number {x}"))
+        });
         match self.operator {
             Operator::MULT => numbers.fold(1, |acc, el| acc * el),
             Operator::PLUS => numbers.sum(),
@@ -155,8 +164,7 @@ impl Operation {
             .elements
             .iter()
             .map(|x| {
-                x
-                    .chars()
+                x.chars()
                     // .filter(|s| !s.is_empty())
                     .map(String::from)
                     .collect::<Vec<String>>()
@@ -229,7 +237,8 @@ mod day_6_tests {
         let mut matrix = Matrix::from(INPUT);
         matrix.rotate_clockwise();
         println!("m: {}", matrix);
-        let mathbook = MathBook::try_from(matrix).map_err(|_| anyhow!("falied to parse mathbook"))?;
+        let mathbook =
+            MathBook::try_from(matrix).map_err(|_| anyhow!("falied to parse mathbook"))?;
         println!("{:?}", mathbook);
 
         assert_eq!(mathbook.total(), 4277556);
@@ -239,7 +248,7 @@ mod day_6_tests {
 
     #[test]
     fn test_problem_two() -> anyhow::Result<()> {
-        let mut matrix = Grid::from(INPUT);
+        let matrix = Grid::from(INPUT);
         println!("{:?}", matrix);
         // let mut mathbook = MathBook::try_from(matrix).map_err(|_| anyhow!(""))?;
         // mathbook.cephalopod_columns();
